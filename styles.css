@@ -1,8 +1,159 @@
-/*
+/* Everything here rides Obsidian's own variables so the plugin tracks the active theme. */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.dragon-glass {
+	margin-block: var(--size-4-2);
+}
 
-If your plugin does not need CSS, delete this file.
+.dragon-glass-toolbar {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	flex-wrap: wrap;
+	margin-bottom: var(--size-4-3);
+}
 
-*/
+.dragon-glass-button {
+	cursor: pointer;
+}
+
+.dragon-glass-count {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.dragon-glass-filters {
+	display: flex;
+	gap: var(--size-2-2);
+	flex-wrap: wrap;
+	margin-left: auto;
+}
+
+.dragon-glass-chip {
+	padding: var(--size-2-1) var(--size-4-2);
+	border-radius: var(--radius-l);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.dragon-glass-chip.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+/* Wide tables scroll inside their own box rather than widening the note. */
+.dragon-glass-table-wrapper {
+	overflow-x: auto;
+}
+
+.dragon-glass-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--font-ui-small);
+}
+
+.dragon-glass-table th,
+.dragon-glass-table td {
+	text-align: left;
+	padding: var(--size-2-2) var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+	vertical-align: top;
+}
+
+.dragon-glass-table th {
+	color: var(--text-muted);
+	font-weight: var(--font-semibold);
+	white-space: nowrap;
+}
+
+.dragon-glass-table th.is-sortable {
+	cursor: pointer;
+	user-select: none;
+}
+
+.dragon-glass-table th.is-sortable:hover {
+	color: var(--text-normal);
+}
+
+.dragon-glass-table th.is-sorted {
+	color: var(--text-accent);
+}
+
+.dragon-glass-table tbody tr:hover {
+	background: var(--background-modifier-hover);
+}
+
+.dragon-glass-numeric {
+	width: 1%;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+/* A session number read off the filename because frontmatter had none. */
+.dragon-glass-numeric.is-inferred {
+	opacity: 0.65;
+}
+
+.dragon-glass-summary {
+	width: 60%;
+}
+
+/* Summaries render as markdown; strip the block margins so rows stay compact. */
+.dragon-glass-markdown-cell > :first-child {
+	margin-top: 0;
+}
+
+.dragon-glass-markdown-cell > :last-child {
+	margin-bottom: 0;
+}
+
+.dragon-glass-section {
+	margin-top: var(--size-4-6);
+}
+
+.dragon-glass-section-title {
+	margin-bottom: var(--size-4-2);
+}
+
+.dragon-glass-inline-button {
+	margin-left: var(--size-4-2);
+	padding: 0 var(--size-4-1);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.dragon-glass-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	padding: var(--size-4-2) 0;
+}
+
+.dragon-glass-error {
+	color: var(--text-error);
+	padding: var(--size-4-2);
+	border-left: 3px solid var(--text-error);
+	background: var(--background-secondary);
+}
+
+.dragon-glass-recap {
+	padding: var(--size-4-2) 0;
+}
+
+.dragon-glass-recap-heading {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-2-2);
+	font-weight: var(--font-semibold);
+}
+
+/* Modals */
+
+.dragon-glass-modal-error {
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+	min-height: 1.2em;
+}

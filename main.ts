@@ -1,137 +1,157 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Notice, Plugin, TFile, TFolder } from 'obsidian';
+import {
+	DEFAULT_SETTINGS,
+	DragonGlassSettingTab,
+	DragonGlassSettings,
+} from './src/settings';
+import { VaultIndex } from './src/model/vaultIndex';
+import { DragonGlassBlock, parseBlockConfig } from './src/render/block';
+import { openNewCampaignModal, ensureFolder } from './src/commands/newCampaign';
+import { createSession } from './src/commands/newSession';
+import { CampaignSuggestModal } from './src/ui/CampaignSuggestModal';
+import { adoptCampaignFolder } from './src/commands/createIndex';
 
-// Remember to rename these classes and interfaces!
+export default class DragonGlassPlugin extends Plugin {
+	settings: DragonGlassSettings;
+	index: VaultIndex;
 
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
-	async onload() {
+	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+		this.index = new VaultIndex(this.app, this.settings);
+		this.addSettingTab(new DragonGlassSettingTab(this.app, this));
+
+		this.registerMarkdownCodeBlockProcessor('dragon-glass', (source, element, ctx) => {
+			try {
+				const config = parseBlockConfig(source);
+				ctx.addChild(new DragonGlassBlock(this, element, config, ctx));
+			} catch (error) {
+				element.createDiv({
+					cls: 'dragon-glass dragon-glass-error',
+					text: `Dragon Glass: ${(error as Error).message}`,
+				});
+			}
 		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+		// The vault's file list is not populated until layout is ready; building before
+		// then yields an empty index on startup.
+		this.app.workspace.onLayoutReady(async () => {
+			this.index.rebuild();
+			if (this.settings.autoCreateGameIndex) {
+				await this.ensureGameIndex(false);
+			}
+		});
 
-		// This adds a simple command that can be triggered anywhere
+		// The vault holds plenty outside the campaign tree (Personal, Stat Blocks, …);
+		// editing any of it should not trigger a rescan.
+		const touchesCampaigns = (path: string, oldPath?: string): boolean => {
+			const root = this.settings.rootFolder + '/';
+			return path.startsWith(root) || (oldPath?.startsWith(root) ?? false);
+		};
+
+		this.registerEvent(
+			this.app.metadataCache.on('changed', (file) => {
+				if (touchesCampaigns(file.path)) this.index.scheduleRebuild();
+			})
+		);
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				if (touchesCampaigns(file.path, oldPath)) this.index.scheduleRebuild();
+			})
+		);
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				if (touchesCampaigns(file.path)) this.index.scheduleRebuild();
+			})
+		);
+		this.registerEvent(
+			this.app.vault.on('create', (file) => {
+				if (touchesCampaigns(file.path)) this.index.scheduleRebuild();
+			})
+		);
+
+		this.registerCommands();
+	}
+
+	private registerCommands(): void {
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
+			id: 'open-game-index',
+			name: 'Open game index',
+			callback: () => void this.ensureGameIndex(true),
+		});
+
+		this.addCommand({
+			id: 'new-campaign',
+			name: 'New campaign',
+			callback: () => openNewCampaignModal(this.app, this.settings),
+		});
+
+		this.addCommand({
+			id: 'new-session',
+			name: 'New session',
 			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+				const active = this.app.workspace.getActiveFile();
+				const campaign = active ? this.index.getCampaignForPath(active.path) : null;
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+				if (campaign) {
+					void createSession(this.app, this.settings, this.index, campaign.folder);
+					return;
 				}
-			}
+
+				new CampaignSuggestModal(this.app, this.index.getCampaigns(), (chosen) =>
+					void createSession(this.app, this.settings, this.index, chosen.folder)
+				).open();
+			},
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addCommand({
+			id: 'create-campaign-index',
+			name: 'Set up campaign index',
+			callback: () => {
+				const unindexed = this.index
+					.getCampaigns()
+					.filter((campaign) => !campaign.indexFile);
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
+				if (unindexed.length === 0) {
+					new Notice('Every campaign already has an index note.');
+					return;
+				}
+
+				new CampaignSuggestModal(this.app, unindexed, async (chosen) => {
+					const folder = this.app.vault.getAbstractFileByPath(chosen.path);
+					if (!(folder instanceof TFolder)) return;
+					await adoptCampaignFolder(this.app, this.settings, this.index, folder);
+				}).open();
+			},
 		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
-	onunload() {
+	/** Open the game index, creating it first when it does not exist. */
+	private async ensureGameIndex(open: boolean): Promise<void> {
+		const path = this.settings.gameIndexPath;
+		let file = this.app.vault.getAbstractFileByPath(path);
 
+		if (!file) {
+			const lastSlash = path.lastIndexOf('/');
+			if (lastSlash > 0) await ensureFolder(this.app, path.slice(0, lastSlash));
+
+			const title = path.slice(lastSlash + 1).replace(/\.md$/, '');
+			file = await this.app.vault.create(
+				path,
+				['', `# ${title}`, '', '```dragon-glass', 'view: index', '```', ''].join('\n')
+			);
+		}
+
+		if (open && file instanceof TFile) {
+			await this.app.workspace.getLeaf(false).openFile(file);
+		}
 	}
 
-	async loadSettings() {
+	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
-	async saveSettings() {
+	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
 	}
 }

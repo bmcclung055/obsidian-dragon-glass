@@ -1,73 +1,118 @@
-# Obsidian Sample Plugin
+# Dragon Glass
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Campaign management for TTRPG vaults in Obsidian. It creates a game index, campaign
+folders, campaign index notes, and session notes — and renders live tables of them, with
+no dependency on Dataview, Templater, Meta Bind, or Buttons.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+It creates exactly four things: the game index, campaign folders, one campaign index note
+per campaign, and session notes. Everything else — people, locations, factions, items — is
+yours to create however you like. Dragon Glass only reads and tabulates them.
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+## Setup
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Changes the default font color to red using `styles.css`.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+Set the **root folder** in settings (default `TTRPG`). It should contain one subfolder per
+campaign. Then run **Dragon Glass: Open game index** from the command palette.
 
-## First time developing plugins?
+## Code blocks
 
-Quick starting guide for new plugin devs:
+Views are rendered by a `dragon-glass` code block. The campaign is inferred from the folder
+the note lives in, so blocks carry no paths or line numbers.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+The game index — a New Campaign button and a table of every campaign:
 
-## Releasing new releases
+````
+```dragon-glass
+view: index
+```
+````
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+A campaign index — a New Session button and session history:
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+````
+```dragon-glass
+view: campaign
+```
+````
 
-## Adding your plugin to the community plugin list
+Add `tables:` to tabulate other notes below the sessions. `type` is any string you use in
+your own frontmatter; omit `columns` and they are inferred from the notes themselves:
 
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+````
+```dragon-glass
+view: campaign
+tables:
+  - type: person
+    sort: location
+  - type: faction
+```
+````
 
-## How to use
+A single table on its own, under whatever heading the note already has:
 
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
+````
+```dragon-glass
+view: table
+type: person
+columns: [location, race, association, status]
+sort: location
+```
+````
 
-## Manually installing the plugin
+A recap of the previous session, resolved when the note is read rather than frozen at
+creation:
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+````
+```dragon-glass
+view: recap
+count: 1
+```
+````
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+## Discovery
 
+A folder directly under the root is a campaign when it either holds a note typed
+`campaign`, or holds at least one `type: session` note. Filenames never enter into it, so a
+campaign index can be called anything — which leaves the campaign's own name free for an
+in-game note of the same name.
 
-## API Documentation
+The campaign type is deliberately one specific value. `type: world` is not usable for this:
+a campaign folder routinely contains in-game worldbuilding notes typed `world`, and nothing
+distinguishes those from the index.
 
-See https://github.com/obsidianmd/obsidian-api
+A folder with sessions but no index note shows in the game index with a **Set up index**
+action, which creates one for it.
+
+## Frontmatter
+
+Dragon Glass reads and writes these keys, and conforms to what a vault already uses.
+
+| Note | Keys |
+| --- | --- |
+| Campaign index | `type: campaign`, `campaign`, `role`, `system`, `status`, `creationDate` |
+| Session | `type: session`, `session`, `campaign`, `summary`, `creationDate` |
+
+Session numbers are assigned as one past the highest that exists, so deleting a session
+never causes the next one to reuse a live number.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| Open game index | Opens the game index, creating it if needed |
+| New campaign | Modal for name, role, system, status, subfolders |
+| New session | Next-numbered session in the current campaign |
+| Set up campaign index | Adopts a folder that has sessions but no index |
+
+## Development
+
+```sh
+npm install
+npm run dev     # watch build
+npm run build   # typecheck + production build
+```
+
+To develop against a vault, junction the vault's plugin folder to this repo:
+
+```sh
+mklink /J "<vault>\.obsidian\plugins\dragon-glass" "<path to this repo>"
+```
