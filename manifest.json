@@ -4,7 +4,7 @@
 	"version": "0.1.0",
 	"minAppVersion": "1.5.0",
 	"description": "Campaign management for TTRPG vaults: a game index, campaign folders, and session notes with live history tables.",
-	"author": "bmcclung",
+	"author": "Bryson McClung",
 	"authorUrl": "",
 	"isDesktopOnly": false
 }

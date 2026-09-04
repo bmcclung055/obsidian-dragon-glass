@@ -12,7 +12,7 @@
 		"obsidian",
 		"ttrpg"
 	],
-	"author": "bmcclung",
+	"author": "Bryson McClung",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
