@@ -1,4 +1,4 @@
-import { App, Notice, TFile, TFolder, moment } from 'obsidian';
+import { App, Notice, TFile, moment } from 'obsidian';
 import { DragonGlassSettings } from '../settings';
 import { VaultIndex } from '../model/vaultIndex';
 import { joinPath, sessionBasename } from '../model/naming';
@@ -37,8 +37,8 @@ export async function createSession(
 		return null;
 	}
 
-	const folder = app.vault.getAbstractFileByPath(campaign.path);
-	if (!(folder instanceof TFolder)) {
+	const folder = app.vault.getFolderByPath(campaign.path);
+	if (!folder) {
 		new Notice(`${campaign.path} is not a folder.`);
 		return null;
 	}
@@ -48,7 +48,7 @@ export async function createSession(
 	const basename = sessionBasename(settings, number, now);
 	const path = joinPath(folder.path, `${basename}.md`);
 
-	if (app.vault.getAbstractFileByPath(path)) {
+	if (app.vault.getFileByPath(path)) {
 		new Notice(`${basename} already exists.`);
 		return null;
 	}

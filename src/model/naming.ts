@@ -1,4 +1,4 @@
-import { moment } from 'obsidian';
+import { moment, normalizePath } from 'obsidian';
 import { DragonGlassSettings } from '../settings';
 
 /** Characters Obsidian refuses in a file or folder name. */
@@ -30,7 +30,15 @@ export function sessionBasename(
 		.trim();
 }
 
-/** Join path segments, collapsing the empty root case. */
+/**
+ * Join path segments into a vault path.
+ *
+ * Every segment here can originate in user input — a configured root folder, a campaign
+ * name typed into the modal — so the result goes through `normalizePath`, which settles
+ * backslashes, doubled and trailing separators, and non-breaking spaces. It maps an empty
+ * path to '/', which is not what joining nothing means, so that case returns '' instead.
+ */
 export function joinPath(...segments: string[]): string {
-	return segments.filter((segment) => segment.length > 0).join('/');
+	const joined = segments.filter((segment) => segment.length > 0).join('/');
+	return joined ? normalizePath(joined) : '';
 }

@@ -1,4 +1,3 @@
-import { TFolder } from 'obsidian';
 import { Campaign } from '../model/types';
 import { Column, renderFileLink, renderTable } from './table';
 import { openNewCampaignModal } from '../commands/newCampaign';
@@ -70,8 +69,8 @@ export function renderIndexView(context: ViewContext, container: HTMLElement): v
 					text: 'Set up index',
 				});
 				adopt.addEventListener('click', async () => {
-					const folder = app.vault.getAbstractFileByPath(campaign.path);
-					if (!(folder instanceof TFolder)) return;
+					const folder = app.vault.getFolderByPath(campaign.path);
+					if (!folder) return;
 					await adoptCampaignFolder(app, plugin.settings, plugin.index, folder);
 				});
 			},

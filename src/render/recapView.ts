@@ -1,4 +1,3 @@
-import { TFile } from 'obsidian';
 import { renderFileLink, renderMarkdownCell } from './table';
 import { readNumber } from '../model/frontmatter';
 import { ViewContext } from './context';
@@ -25,9 +24,8 @@ export function renderRecapView(context: ViewContext, container: HTMLElement): v
 		return;
 	}
 
-	const file = app.vault.getAbstractFileByPath(sourcePath);
-	const frontmatter =
-		file instanceof TFile ? app.metadataCache.getFileCache(file)?.frontmatter : undefined;
+	const file = app.vault.getFileByPath(sourcePath);
+	const frontmatter = file ? app.metadataCache.getFileCache(file)?.frontmatter : undefined;
 	const current = readNumber(frontmatter?.session);
 
 	if (current === null) {

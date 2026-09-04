@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, normalizePath } from 'obsidian';
 import type DragonGlassPlugin from '../main';
 import { EntityTableConfig } from './model/types';
 
@@ -66,6 +66,17 @@ export const DEFAULT_SETTINGS: DragonGlassSettings = {
 	defaultEntityTables: [],
 };
 
+/**
+ * Tidy a path typed into the settings tab.
+ *
+ * `normalizePath` maps an empty string to '/', which would silently point the plugin at
+ * the vault root, so a cleared field stays empty and the default takes over instead.
+ */
+export function cleanPath(value: string): string {
+	const trimmed = value.trim();
+	return trimmed ? normalizePath(trimmed) : '';
+}
+
 /** Split a textarea/comma value into a trimmed, non-empty list. */
 export function parseList(value: string): string[] {
 	return value
@@ -94,7 +105,7 @@ export class DragonGlassSettingTab extends PluginSettingTab {
 					.setPlaceholder('TTRPG')
 					.setValue(this.plugin.settings.rootFolder)
 					.onChange(async (value) => {
-						this.plugin.settings.rootFolder = value.trim().replace(/\/+$/, '');
+						this.plugin.settings.rootFolder = cleanPath(value);
 						await this.plugin.saveSettings();
 						this.plugin.index.rebuild();
 					})
@@ -108,7 +119,7 @@ export class DragonGlassSettingTab extends PluginSettingTab {
 					.setPlaceholder('TTRPG/TTRPG Game Index.md')
 					.setValue(this.plugin.settings.gameIndexPath)
 					.onChange(async (value) => {
-						this.plugin.settings.gameIndexPath = value.trim();
+						this.plugin.settings.gameIndexPath = cleanPath(value);
 						await this.plugin.saveSettings();
 					})
 			);

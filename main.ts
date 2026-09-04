@@ -1,8 +1,9 @@
-import { Notice, Plugin, TFile, TFolder } from 'obsidian';
+import { Notice, Plugin } from 'obsidian';
 import {
 	DEFAULT_SETTINGS,
 	DragonGlassSettingTab,
 	DragonGlassSettings,
+	cleanPath,
 } from './src/settings';
 import { VaultIndex } from './src/model/vaultIndex';
 import { DragonGlassBlock, parseBlockConfig } from './src/render/block';
@@ -118,8 +119,8 @@ export default class DragonGlassPlugin extends Plugin {
 				}
 
 				new CampaignSuggestModal(this.app, unindexed, async (chosen) => {
-					const folder = this.app.vault.getAbstractFileByPath(chosen.path);
-					if (!(folder instanceof TFolder)) return;
+					const folder = this.app.vault.getFolderByPath(chosen.path);
+					if (!folder) return;
 					await adoptCampaignFolder(this.app, this.settings, this.index, folder);
 				}).open();
 			},
@@ -129,7 +130,7 @@ export default class DragonGlassPlugin extends Plugin {
 	/** Open the game index, creating it first when it does not exist. */
 	private async ensureGameIndex(open: boolean): Promise<void> {
 		const path = this.settings.gameIndexPath;
-		let file = this.app.vault.getAbstractFileByPath(path);
+		let file = this.app.vault.getFileByPath(path);
 
 		if (!file) {
 			const lastSlash = path.lastIndexOf('/');
@@ -142,13 +143,20 @@ export default class DragonGlassPlugin extends Plugin {
 			);
 		}
 
-		if (open && file instanceof TFile) {
+		if (open && file) {
 			await this.app.workspace.getLeaf(false).openFile(file);
 		}
 	}
 
 	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+		// Paths saved before normalization existed, or hand-edited in data.json, would
+		// otherwise bypass the settings tab's cleaning entirely.
+		this.settings.rootFolder =
+			cleanPath(this.settings.rootFolder) || DEFAULT_SETTINGS.rootFolder;
+		this.settings.gameIndexPath =
+			cleanPath(this.settings.gameIndexPath) || DEFAULT_SETTINGS.gameIndexPath;
 	}
 
 	async saveSettings(): Promise<void> {

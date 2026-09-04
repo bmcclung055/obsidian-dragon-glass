@@ -1,6 +1,6 @@
 import { App, Modal, Setting } from 'obsidian';
 import { DragonGlassSettings } from '../settings';
-import { validateCampaignName } from '../model/naming';
+import { joinPath, validateCampaignName } from '../model/naming';
 
 export interface NewCampaignResult {
 	name: string;
@@ -34,7 +34,7 @@ export class NewCampaignModal extends Modal {
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.addClass('dragon-glass-modal');
-		contentEl.createEl('h2', { text: 'New campaign' });
+		this.setTitle('New campaign');
 
 		new Setting(contentEl).setName('Name').addText((text) => {
 			text.setPlaceholder('Greyhawk').onChange((value) => {
@@ -104,8 +104,10 @@ export class NewCampaignModal extends Modal {
 			return;
 		}
 
-		const path = `${this.settings.rootFolder}/${name}`;
-		if (this.app.vault.getAbstractFileByPath(path)) {
+		// A campaign folder and a same-named note can coexist (`Greyhawk` beside
+		// `Greyhawk.md`), so only a folder at this path is a collision.
+		const path = joinPath(this.settings.rootFolder, name);
+		if (this.app.vault.getFolderByPath(path)) {
 			this.showError(`${path} already exists.`);
 			return;
 		}

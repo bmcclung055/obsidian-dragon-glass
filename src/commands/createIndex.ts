@@ -41,8 +41,8 @@ export async function createCampaignIndex(
 	const basename = campaignIndexBasename(settings, folder.name);
 	const path = joinPath(folder.path, `${basename}.md`);
 
-	const existing = app.vault.getAbstractFileByPath(path);
-	if (existing instanceof TFile) {
+	const existing = app.vault.getFileByPath(path);
+	if (existing) {
 		new Notice(`${basename} already exists.`);
 		return existing;
 	}

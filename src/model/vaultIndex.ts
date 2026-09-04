@@ -30,8 +30,8 @@ export class VaultIndex extends Events {
 	rebuild(): void {
 		this.campaigns.clear();
 
-		const root = this.app.vault.getAbstractFileByPath(this.settings.rootFolder);
-		if (!(root instanceof TFolder)) {
+		const root = this.app.vault.getFolderByPath(this.settings.rootFolder);
+		if (!root) {
 			this.trigger('changed');
 			return;
 		}
@@ -171,8 +171,8 @@ export class VaultIndex extends Events {
 		if (!campaign) return [];
 
 		const target = type.toLowerCase();
-		const parent = this.app.vault.getAbstractFileByPath(campaign.path);
-		if (!(parent instanceof TFolder)) return [];
+		const parent = this.app.vault.getFolderByPath(campaign.path);
+		if (!parent) return [];
 
 		return this.collectMarkdown(parent).filter((file) => {
 			const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;

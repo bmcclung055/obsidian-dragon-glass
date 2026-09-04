@@ -6,10 +6,12 @@ import { joinPath } from '../model/naming';
 
 /** Create the folder if it is missing, and return it either way. */
 export async function ensureFolder(app: App, path: string): Promise<TFolder> {
-	const existing = app.vault.getAbstractFileByPath(path);
-	if (existing instanceof TFolder) return existing;
-	if (existing) throw new Error(`${path} exists but is not a folder.`);
-	return (await app.vault.createFolder(path)) as TFolder;
+	const existing = app.vault.getFolderByPath(path);
+	if (existing) return existing;
+	// getFolderByPath is null both for "nothing here" and "a note is here"; only the
+	// second is an error worth reporting.
+	if (app.vault.getFileByPath(path)) throw new Error(`${path} exists but is not a folder.`);
+	return app.vault.createFolder(path);
 }
 
 export function openNewCampaignModal(app: App, settings: DragonGlassSettings): void {
