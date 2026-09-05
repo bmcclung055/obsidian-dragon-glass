@@ -1,7 +1,7 @@
 {
 	"id": "dragon-glass",
 	"name": "Dragon Glass",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"minAppVersion": "1.5.7",
 	"description": "Campaign management for TTRPG vaults: a game index, campaign folders, and session notes with live history tables.",
 	"author": "Bryson McClung",
