@@ -23,6 +23,7 @@
 		"eslint-plugin-obsidianmd": "^0.4.2",
 		"globals": "^17.12.0",
 		"jiti": "^2.7.0",
+		"moment": "2.29.4",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "^5.9.3",
