@@ -1,4 +1,5 @@
-import { App, PluginSettingTab, Setting, normalizePath } from 'obsidian';
+import { App, PluginSettingTab, normalizePath } from 'obsidian';
+import type { SettingDefinitionItem } from 'obsidian';
 import type DragonGlassPlugin from '../main';
 import { EntityTableConfig } from './model/types';
 
@@ -85,6 +86,21 @@ export function parseList(value: string): string[] {
 		.filter((item) => item.length > 0);
 }
 
+/** Settings stored as a list but edited as one-per-line text. */
+type ListKey = 'campaignSubfolders' | 'roles' | 'systems' | 'statuses' | 'knownTypes';
+
+const LIST_KEYS: ListKey[] = [
+	'campaignSubfolders',
+	'roles',
+	'systems',
+	'statuses',
+	'knownTypes',
+];
+
+function isListKey(key: string): key is ListKey {
+	return (LIST_KEYS as string[]).includes(key);
+}
+
 export class DragonGlassSettingTab extends PluginSettingTab {
 	plugin: DragonGlassPlugin;
 
@@ -93,178 +109,185 @@ export class DragonGlassSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Root folder')
-			.setDesc('Folder holding one subfolder per campaign.')
-			.addText((text) =>
-				text
-					.setPlaceholder('TTRPG')
-					.setValue(this.plugin.settings.rootFolder)
-					.onChange(async (value) => {
-						this.plugin.settings.rootFolder = cleanPath(value);
-						await this.plugin.saveSettings();
-						this.plugin.index.rebuild();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName('Game index note')
-			.setDesc('Path to the note listing every campaign.')
-			.addText((text) =>
-				text
-					.setPlaceholder('TTRPG/TTRPG Game Index.md')
-					.setValue(this.plugin.settings.gameIndexPath)
-					.onChange(async (value) => {
-						this.plugin.settings.gameIndexPath = cleanPath(value);
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName('Create the game index on startup')
-			.setDesc('Create the note above if it does not exist yet.')
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.autoCreateGameIndex)
-					.onChange(async (value) => {
-						this.plugin.settings.autoCreateGameIndex = value;
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl).setName('Campaigns').setHeading();
-
-		new Setting(containerEl)
-			.setName('Campaign index filename')
-			.setDesc('{{name}} is the campaign folder name.')
-			.addText((text) =>
-				text
-					.setPlaceholder('{{name}} Index')
-					.setValue(this.plugin.settings.campaignIndexFormat)
-					.onChange(async (value) => {
-						this.plugin.settings.campaignIndexFormat = value.trim() || '{{name}} Index';
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName('Campaign index type')
-			.setDesc(
-				'A note with this `type:` marks its folder as a campaign. Keep it distinct from any type you use for in-game notes.'
-			)
-			.addText((text) =>
-				text
-					// No placeholder here: it would hold the literal frontmatter value
-					// `campaign`, which the sentence-case rule wants capitalised, and
-					// `type: Campaign` is not what this setting means.
-					.setValue(this.plugin.settings.campaignType)
-					.onChange(async (value) => {
-						this.plugin.settings.campaignType = value.trim() || 'campaign';
-						await this.plugin.saveSettings();
-						this.plugin.index.rebuild();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName('Subfolders for new campaigns')
-			.setDesc('Created inside each new campaign folder. One per line; leave empty for none.')
-			.addTextArea((area) =>
-				area
-					.setValue(this.plugin.settings.campaignSubfolders.join('\n'))
-					.onChange(async (value) => {
-						this.plugin.settings.campaignSubfolders = parseList(value);
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl).setName('New campaign choices').setHeading();
-
-		const listSettings: Array<[string, string, keyof DragonGlassSettings]> = [
-			['Roles', 'Choices offered for `role:`. One per line.', 'roles'],
-			['Systems', 'Choices offered for `system:`. One per line.', 'systems'],
-			['Statuses', 'Choices offered for `status:`. One per line.', 'statuses'],
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: 'Root folder',
+				desc: 'Folder holding one subfolder per campaign.',
+				control: { type: 'text', key: 'rootFolder', placeholder: 'TTRPG' },
+			},
+			{
+				name: 'Game index note',
+				desc: 'Path to the note listing every campaign.',
+				control: {
+					type: 'text',
+					key: 'gameIndexPath',
+					placeholder: 'TTRPG/TTRPG Game Index.md',
+				},
+			},
+			{
+				name: 'Create the game index on startup',
+				desc: 'Create the note above if it does not exist yet.',
+				control: { type: 'toggle', key: 'autoCreateGameIndex' },
+			},
+			{
+				type: 'group',
+				heading: 'Campaigns',
+				items: [
+					{
+						name: 'Campaign index filename',
+						desc: '{{name}} is the campaign folder name.',
+						control: {
+							type: 'text',
+							key: 'campaignIndexFormat',
+							placeholder: '{{name}} Index',
+						},
+					},
+					{
+						name: 'Campaign index type',
+						desc: 'A note with this `type:` marks its folder as a campaign. Keep it distinct from any type you use for in-game notes.',
+						// No placeholder here: it would hold the literal frontmatter value
+						// `campaign`, which the sentence-case rule wants capitalised, and
+						// `type: Campaign` is not what this setting means.
+						control: { type: 'text', key: 'campaignType' },
+					},
+					{
+						name: 'Subfolders for new campaigns',
+						desc: 'Created inside each new campaign folder. One per line; leave empty for none.',
+						control: { type: 'textarea', key: 'campaignSubfolders' },
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'New campaign choices',
+				items: [
+					{
+						name: 'Roles',
+						desc: 'Choices offered for `role:`. One per line.',
+						control: { type: 'textarea', key: 'roles' },
+					},
+					{
+						name: 'Systems',
+						desc: 'Choices offered for `system:`. One per line.',
+						control: { type: 'textarea', key: 'systems' },
+					},
+					{
+						name: 'Statuses',
+						desc: 'Choices offered for `status:`. One per line.',
+						control: { type: 'textarea', key: 'statuses' },
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'Sessions',
+				items: [
+					{
+						name: 'Session filename',
+						desc: '{{num}} is the padded session number. {{date:FORMAT}} takes a moment format.',
+						control: {
+							type: 'text',
+							key: 'sessionFileFormat',
+							placeholder: '{{num}}-{{date:YYYYMMDD}}',
+						},
+					},
+					{
+						name: 'Session number padding',
+						desc: 'Digits to zero-pad session numbers to, so 3 gives 007.',
+						control: {
+							type: 'number',
+							key: 'sessionNumberPadding',
+							min: 0,
+							defaultValue: DEFAULT_SETTINGS.sessionNumberPadding,
+							validate: (value: number) =>
+								Number.isInteger(value) && value >= 0
+									? undefined
+									: 'Enter a whole number of digits, 0 or more.',
+						},
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'Entity tables',
+				items: [
+					{
+						name: 'Known types',
+						desc: 'Suggested in the settings. Any `type:` value works whether listed or not. One per line.',
+						control: { type: 'textarea', key: 'knownTypes' },
+					},
+					{
+						name: 'Default tables',
+						desc: 'Types tabulated on every campaign index that does not list its own `tables:`. One per line; columns are inferred from your notes.',
+						control: { type: 'textarea', key: 'defaultEntityTables' },
+					},
+				],
+			},
 		];
+	}
 
-		for (const [name, desc, key] of listSettings) {
-			new Setting(containerEl)
-				.setName(name)
-				.setDesc(desc)
-				.addTextArea((area) =>
-					area
-						.setValue((this.plugin.settings[key] as string[]).join('\n'))
-						.onChange(async (value) => {
-							(this.plugin.settings[key] as string[]) = parseList(value);
-							await this.plugin.saveSettings();
-						})
-				);
+	/** Stored value → control value. Lists render as one entry per line. */
+	getControlValue(key: string): unknown {
+		const settings = this.plugin.settings;
+
+		if (isListKey(key)) return settings[key].join('\n');
+		if (key === 'defaultEntityTables') {
+			return settings.defaultEntityTables.map((table) => table.type).join('\n');
+		}
+		return settings[key as keyof DragonGlassSettings];
+	}
+
+	/**
+	 * Control value → stored value, applying the same coercion the imperative tab did:
+	 * a cleared field falls back to its default rather than persisting an empty value.
+	 */
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		const settings = this.plugin.settings;
+		// Only the two settings that change what counts as a campaign need a rescan.
+		let rebuild = false;
+
+		if (isListKey(key)) {
+			settings[key] = parseList(String(value));
+		} else {
+			switch (key) {
+				case 'rootFolder':
+					settings.rootFolder = cleanPath(String(value));
+					rebuild = true;
+					break;
+				case 'gameIndexPath':
+					settings.gameIndexPath = cleanPath(String(value));
+					break;
+				case 'autoCreateGameIndex':
+					settings.autoCreateGameIndex = Boolean(value);
+					break;
+				case 'campaignIndexFormat':
+					settings.campaignIndexFormat =
+						String(value).trim() || DEFAULT_SETTINGS.campaignIndexFormat;
+					break;
+				case 'campaignType':
+					settings.campaignType = String(value).trim() || DEFAULT_SETTINGS.campaignType;
+					rebuild = true;
+					break;
+				case 'sessionFileFormat':
+					settings.sessionFileFormat =
+						String(value).trim() || DEFAULT_SETTINGS.sessionFileFormat;
+					break;
+				case 'sessionNumberPadding': {
+					const padding = Number(value);
+					settings.sessionNumberPadding =
+						Number.isInteger(padding) && padding >= 0
+							? padding
+							: DEFAULT_SETTINGS.sessionNumberPadding;
+					break;
+				}
+				case 'defaultEntityTables':
+					settings.defaultEntityTables = parseList(String(value)).map((type) => ({ type }));
+					break;
+			}
 		}
 
-		new Setting(containerEl).setName('Sessions').setHeading();
-
-		new Setting(containerEl)
-			.setName('Session filename')
-			.setDesc('{{num}} is the padded session number. {{date:FORMAT}} takes a moment format.')
-			.addText((text) =>
-				text
-					.setPlaceholder('{{num}}-{{date:YYYYMMDD}}')
-					.setValue(this.plugin.settings.sessionFileFormat)
-					.onChange(async (value) => {
-						this.plugin.settings.sessionFileFormat =
-							value.trim() || '{{num}}-{{date:YYYYMMDD}}';
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName('Session number padding')
-			.setDesc('Digits to zero-pad session numbers to, so 3 gives 007.')
-			.addText((text) =>
-				text
-					.setValue(String(this.plugin.settings.sessionNumberPadding))
-					.onChange(async (value) => {
-						const parsed = Number.parseInt(value, 10);
-						this.plugin.settings.sessionNumberPadding =
-							Number.isFinite(parsed) && parsed >= 0 ? parsed : 3;
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl).setName('Entity tables').setHeading();
-
-		new Setting(containerEl)
-			.setName('Known types')
-			.setDesc(
-				'Suggested in the settings. Any `type:` value works whether listed or not. One per line.'
-			)
-			.addTextArea((area) =>
-				area
-					.setValue(this.plugin.settings.knownTypes.join('\n'))
-					.onChange(async (value) => {
-						this.plugin.settings.knownTypes = parseList(value);
-						await this.plugin.saveSettings();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName('Default tables')
-			.setDesc(
-				'Types tabulated on every campaign index that does not list its own `tables:`. One per line; columns are inferred from your notes.'
-			)
-			.addTextArea((area) =>
-				area
-					.setValue(
-						this.plugin.settings.defaultEntityTables.map((table) => table.type).join('\n')
-					)
-					.onChange(async (value) => {
-						this.plugin.settings.defaultEntityTables = parseList(value).map((type) => ({
-							type,
-						}));
-						await this.plugin.saveSettings();
-					})
-			);
+		await this.plugin.saveSettings();
+		if (rebuild) this.plugin.index.rebuild();
 	}
 }
