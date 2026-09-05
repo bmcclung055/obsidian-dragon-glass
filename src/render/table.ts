@@ -110,7 +110,7 @@ export function renderFileLink(
 	});
 	link.addEventListener('click', (event) => {
 		event.preventDefault();
-		app.workspace.openLinkText(file.path, sourcePath, Keymap.isModEvent(event));
+		void app.workspace.openLinkText(file.path, sourcePath, Keymap.isModEvent(event));
 	});
 }
 

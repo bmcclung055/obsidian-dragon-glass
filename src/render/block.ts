@@ -47,7 +47,7 @@ export function parseBlockConfig(source: string): BlockConfig {
 	const trimmed = source.trim();
 	if (!trimmed) throw new Error('Empty block. Add "view: campaign" or "view: index".');
 
-	const parsed = parseYaml(trimmed);
+	const parsed: unknown = parseYaml(trimmed);
 	if (!parsed || typeof parsed !== 'object') {
 		throw new Error('Could not read this block as YAML.');
 	}

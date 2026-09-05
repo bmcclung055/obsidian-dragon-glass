@@ -16,6 +16,11 @@
 	cursor: pointer;
 }
 
+/* The leading "+" is decoration, so it lives here rather than in the button label. */
+.dragon-glass-button::before {
+	content: '+ ';
+}
+
 .dragon-glass-count {
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);

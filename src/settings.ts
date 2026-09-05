@@ -158,7 +158,9 @@ export class DragonGlassSettingTab extends PluginSettingTab {
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder('campaign')
+					// No placeholder here: it would hold the literal frontmatter value
+					// `campaign`, which the sentence-case rule wants capitalised, and
+					// `type: Campaign` is not what this setting means.
 					.setValue(this.plugin.settings.campaignType)
 					.onChange(async (value) => {
 						this.plugin.settings.campaignType = value.trim() || 'campaign';
@@ -179,7 +181,7 @@ export class DragonGlassSettingTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl).setName('New campaign options').setHeading();
+		new Setting(containerEl).setName('New campaign choices').setHeading();
 
 		const listSettings: Array<[string, string, keyof DragonGlassSettings]> = [
 			['Roles', 'Choices offered for `role:`. One per line.', 'roles'],
@@ -219,7 +221,7 @@ export class DragonGlassSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Session number padding')
-			.setDesc('Digits to zero-pad session numbers to. 3 gives 007.')
+			.setDesc('Digits to zero-pad session numbers to, so 3 gives 007.')
 			.addText((text) =>
 				text
 					.setValue(String(this.plugin.settings.sessionNumberPadding))

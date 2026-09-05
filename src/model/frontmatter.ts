@@ -36,7 +36,7 @@ export async function writeFrontmatter(
 	file: TFile,
 	values: Record<string, unknown>
 ): Promise<void> {
-	await app.fileManager.processFrontMatter(file, (frontmatter) => {
+	await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
 		for (const [key, value] of Object.entries(values)) {
 			frontmatter[key] = value;
 		}

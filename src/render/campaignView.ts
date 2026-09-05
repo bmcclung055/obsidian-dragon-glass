@@ -32,16 +32,17 @@ function renderSessions(
 	const toolbar = container.createDiv({ cls: 'dragon-glass-toolbar' });
 	const button = toolbar.createEl('button', {
 		cls: 'mod-cta dragon-glass-button',
-		text: '+ New Session',
+		text: 'New session',
 	});
-	button.addEventListener('click', async () => {
+	const onNewSession = async (): Promise<void> => {
 		button.disabled = true;
 		try {
 			await createSession(app, plugin.settings, plugin.index, campaign.folder);
 		} finally {
 			button.disabled = false;
 		}
-	});
+	};
+	button.addEventListener('click', () => void onNewSession());
 
 	toolbar.createSpan({
 		cls: 'dragon-glass-count',

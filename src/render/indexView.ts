@@ -20,7 +20,7 @@ export function renderIndexView(context: ViewContext, container: HTMLElement): v
 	const toolbar = container.createDiv({ cls: 'dragon-glass-toolbar' });
 	const newButton = toolbar.createEl('button', {
 		cls: 'mod-cta dragon-glass-button',
-		text: '+ New Campaign',
+		text: 'New campaign',
 	});
 	newButton.addEventListener('click', () =>
 		openNewCampaignModal(app, plugin.settings)
@@ -68,10 +68,10 @@ export function renderIndexView(context: ViewContext, container: HTMLElement): v
 					cls: 'dragon-glass-inline-button',
 					text: 'Set up index',
 				});
-				adopt.addEventListener('click', async () => {
+				adopt.addEventListener('click', () => {
 					const folder = app.vault.getFolderByPath(campaign.path);
 					if (!folder) return;
-					await adoptCampaignFolder(app, plugin.settings, plugin.index, folder);
+					void adoptCampaignFolder(app, plugin.settings, plugin.index, folder);
 				});
 			},
 		},

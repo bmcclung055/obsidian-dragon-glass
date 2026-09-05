@@ -118,10 +118,10 @@ export default class DragonGlassPlugin extends Plugin {
 					return;
 				}
 
-				new CampaignSuggestModal(this.app, unindexed, async (chosen) => {
+				new CampaignSuggestModal(this.app, unindexed, (chosen) => {
 					const folder = this.app.vault.getFolderByPath(chosen.path);
 					if (!folder) return;
-					await adoptCampaignFolder(this.app, this.settings, this.index, folder);
+					void adoptCampaignFolder(this.app, this.settings, this.index, folder);
 				}).open();
 			},
 		});
@@ -149,7 +149,8 @@ export default class DragonGlassPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const saved = (await this.loadData()) as Partial<DragonGlassSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
 
 		// Paths saved before normalization existed, or hand-edited in data.json, would
 		// otherwise bypass the settings tab's cleaning entirely.
