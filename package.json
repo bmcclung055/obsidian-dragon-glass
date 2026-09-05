@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-dragon-glass",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Campaign management for TTRPG vaults in Obsidian",
 	"main": "main.js",
 	"scripts": {
