@@ -8,6 +8,21 @@ It creates exactly four things: the game index, campaign folders, one campaign i
 per campaign, and session notes. Everything else — people, locations, factions, items — is
 yours to create however you like. Dragon Glass only reads and tabulates them.
 
+## Screenshots
+
+The game index — every campaign in the vault, sortable, filterable by status.
+
+![The Dragon Glass game index: a sortable table of campaigns with created and last-played dates, session counts, system, role, and status](images/game-index.png)
+
+A campaign index — its session history, and a button that creates the next numbered session.
+
+![A campaign index note showing campaign frontmatter above a sortable table of sessions with numbers, dates, and summaries](images/campaign-index.png)
+
+A session note. The recap resolves when the note is read, so it always points at the
+session before it rather than freezing one in at creation.
+
+![A session note showing frontmatter and a Recap section listing the previous session's number, date, and summary](images/session-recap.png)
+
 ## Setup
 
 Set the **root folder** in settings (default `TTRPG`). It should contain one subfolder per
